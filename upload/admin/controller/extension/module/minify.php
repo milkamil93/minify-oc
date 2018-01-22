@@ -12,6 +12,7 @@ class ControllerExtensionModuleMinify extends Controller {
         $settings['minify_css'] = 1;
         $settings['minify_js'] = 1;
         $settings['minify_html'] = 1;
+        $settings['minify_time'] = '43200';
         
         $this->model_setting_setting->editSetting('minify', $settings);
         
@@ -37,6 +38,7 @@ class ControllerExtensionModuleMinify extends Controller {
         $data['text_gzip'] = $this->language->get('text_gzip');
         $data['text_css'] = $this->language->get('text_css');
         $data['text_js'] = $this->language->get('text_js');
+        $data['text_time'] = $this->language->get('text_time');
 
         $this->load->model('setting/setting');
         $config = $this->model_setting_setting->getSetting('minify');
@@ -104,6 +106,14 @@ class ControllerExtensionModuleMinify extends Controller {
             $data['minify_html'] = $config['minify_html'];
         } else {
             $data['minify_html'] = '';
+        }
+
+        if (isset($this->request->post['minify_time'])) {
+            $data['minify_time'] = $this->request->post['minify_time'];
+        } elseif (!empty($config)) {
+            $data['minify_time'] = $config['minify_time'];
+        } else {
+            $data['minify_time'] = '';
         }
 
         $data['token'] = $this->session->data['token'];

@@ -5,7 +5,7 @@ require_once 'minify/jsmin.class.php';
 class ControllerExtensionModuleMinify extends Controller {
 
     // время хранения файла в секундах
-    private $file_time_expired = '43200'; // 43200 - 30 дней
+    private $file_time_expired = '3600';
 	
     // массив списка js файлов со страницы
     private $js_array = [];
@@ -32,6 +32,8 @@ class ControllerExtensionModuleMinify extends Controller {
         $this->gzip = $this->config->get('minify_gzip');
         
         $this->jgz = $this->gzip ? '.jgz' : '';
+        
+        $this->file_time_expired = $this->config->get('minify_time') ? $this->config->get('minify_time') : $this->file_time_expired;
 		
         // получаем папку темы
         if ($this->config->get('config_theme') == 'theme_default') {

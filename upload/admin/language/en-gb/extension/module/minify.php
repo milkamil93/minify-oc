@@ -14,6 +14,7 @@ $_['text_gzip']           = 'Gzip';
 $_['text_css']           = 'CSS';
 $_['text_js']           = 'JS';
 $_['text_html']           = 'HTML in one line';
+$_['text_time']           = 'The time (in seconds) of the cache life';
 
 // Error
 $_['error_permission']        = 'You do not have permission to edit this module!';

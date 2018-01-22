@@ -48,6 +48,12 @@
                             </div>
                         </div>
                         <div class="form-group">
+                            <label class="col-sm-2 control-label" for="input-time"><?php echo $text_time; ?></label>
+                            <div class="col-sm-2">
+                                <input type="number" name="minify_time" value="<?php echo $minify_time; ?>" class="form-control" id="input-time">
+                            </div>
+                        </div>
+                        <div class="form-group">
                             <label class="col-sm-2 control-label"><?php echo $text_css; ?></label>
                             <div class="col-sm-10">
                                 <?php if ($minify_css) { ?>

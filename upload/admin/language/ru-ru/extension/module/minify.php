@@ -14,6 +14,7 @@ $_['text_gzip']           = 'Gzip';
 $_['text_css']           = 'CSS';
 $_['text_js']           = 'JS';
 $_['text_html']           = 'HTML в одну строку';
+$_['text_time']           = 'Время (в секундах) жизни кеша';
 
 // Error
 $_['error_permission']        = 'У вас нет прав для изменения этого модуля!';
