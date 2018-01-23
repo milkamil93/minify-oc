@@ -1,9 +1,9 @@
 <?php
 /**
-***
-*** Minify by https://github.com/milkamil93
-***
-**/
+ ***
+ *** Minify by https://github.com/milkamil93
+ ***
+ **/
 require_once 'minify/cssmin.class.php';
 require_once 'minify/jsmin.class.php';
 
@@ -11,13 +11,13 @@ class ControllerExtensionModuleMinify extends Controller {
 
     // время хранения файла в секундах
     private $file_time_expired = '3600';
-	
+
     // массив списка js файлов со страницы
     private $js_array = [];
 
     // массив списка css файлов со страницы
     private $css_array = [];
-    
+
     // путь до js файла
     private $output_js;
 
@@ -32,14 +32,14 @@ class ControllerExtensionModuleMinify extends Controller {
 
     // основная функция запуска
     public function minify () {
-        
+
         if(!$this->config->get('minify_status')) return false;
         $this->gzip = $this->config->get('minify_gzip');
-        
+
         $this->jgz = $this->gzip ? '.jgz' : '';
-        
+
         $this->file_time_expired = $this->config->get('minify_time') ? $this->config->get('minify_time') : $this->file_time_expired;
-		
+
         // получаем папку темы
         if ($this->config->get('config_theme') == 'theme_default') {
             $theme = $this->config->get('theme_default_directory');
@@ -53,7 +53,7 @@ class ControllerExtensionModuleMinify extends Controller {
 
         // получаем html
         $buffer = $this->response->getOutput();
-		
+
         // проверяем существование директории
         $this->check_path($this->out_folder);
 
@@ -62,25 +62,25 @@ class ControllerExtensionModuleMinify extends Controller {
 
         // собираем скрипты
         if($this->config->get('minify_js')) $buffer = $this->js($buffer);
-				
+
         // собираем js из контента, сжимаем html и js
         if($this->config->get('minify_html')) $buffer = $this->html($buffer);
-		
-		// вставляем склеиные скрипты
+
+        // вставляем склеиные скрипты
         $buffer = $this->out($buffer);
-		
-		// рендерим новый html
+
+        // рендерим новый html
         $this->response->setOutput($buffer);
     }
 
     // сжимаем собранные js или css в переменную
     private function concatFiles($type) {
-        
+
         switch ($type) {
             case 'css':
                 $this->css_array = $this->css_array;
                 $css = $this->accept_array($this->css_array, 'css');
-				$minify = CSSMin::minify($css);
+                $minify = CSSMin::minify($css);
                 $output_file = $this->output_css;
                 unset($css);
                 break;
@@ -92,7 +92,7 @@ class ControllerExtensionModuleMinify extends Controller {
                 $output_file = $this->output_js;
                 unset($js);
                 break;
-        }		
+        }
 
         if (empty($minify) || empty($output_file)) return false;
 
@@ -118,7 +118,7 @@ class ControllerExtensionModuleMinify extends Controller {
         }
         unset($path);
     }
-    
+
     private function accept_array($array, $type = false) {
         $data = '';
         foreach ($array as &$item) {
@@ -132,7 +132,7 @@ class ControllerExtensionModuleMinify extends Controller {
         unset($array);
         return $data;
     }
-    
+
     private function file_check($file) {
         if (is_file($file)) {
             $time = time() - filemtime($file);
@@ -146,7 +146,7 @@ class ControllerExtensionModuleMinify extends Controller {
             return true;
         }
     }
-    
+
     // собираем css
     private function css($buffer) {
         preg_match_all('/<link[^>]*href="([^"]*).css"[^>]*>/is', $buffer, $styles);
@@ -169,7 +169,7 @@ class ControllerExtensionModuleMinify extends Controller {
 
         // удаляем старые стили
         $buffer = str_replace($this->css_array, 'remove', $buffer);
-        $buffer = preg_replace('/<link[^>]*href="remove"[^>]*>\n/is', '', $buffer);
+        $buffer = preg_replace('/<link(.*?)href="remove"(.*?)>/', '', $buffer);
         $_css_file = md5(serialize($this->css_array)) . '.css' . $this->jgz;
         $this->output_css = $this->out_folder . '/' . $_css_file;
         if ($this->file_check($this->output_css)) {
@@ -179,7 +179,7 @@ class ControllerExtensionModuleMinify extends Controller {
         unset($styles,$_css_file);
         return $buffer;
     }
-    
+
     // собираем js
     private function js($buffer) {
         preg_match_all('/<script\b[^>]*><\/script>/is', $buffer, $scripts);
@@ -200,16 +200,16 @@ class ControllerExtensionModuleMinify extends Controller {
             }
             unset($script,$script_name,$file_name);
         }
-        
+
         // удаляем старые скрипты
         $buffer = str_replace($this->js_array, 'remove', $buffer);
-        $buffer = preg_replace('/<script(.*?)remove(.*?)><\/script>\n/is', '', $buffer);
+        $buffer = preg_replace('/<script(.*?)remove(.*?)><\/script>/', '', $buffer);
         $_js_file = md5(serialize($this->js_array)) . '.js' . $this->jgz;
         $this->output_js = $this->out_folder . '/' . $_js_file;
         if ($this->file_check($this->output_js)) {
             $this->concatFiles('js');
         }
-        
+
         unset($scripts,$_js_file);
         return $buffer;
     }
@@ -238,7 +238,7 @@ class ControllerExtensionModuleMinify extends Controller {
             $buffer = preg_replace('/<script data-s="' . $i . '" type="text\/javascript">(.*?)<\/script>/is', '<script type="text/javascript">' . $js . '</script>', $buffer);
             unset($js,$i);
         }
-        
+
         unset($html_js,$html_js_1,$html_js_2);
         return $buffer;
     }
@@ -266,7 +266,7 @@ class ControllerExtensionModuleMinify extends Controller {
         $array = array_unique($array);
         return array_map('trim', $array);
     }
-    
+
     // поиск и удаление внешних ссылок в массиве
     private function external_url($array) {
         $out = [];
