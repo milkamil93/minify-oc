@@ -1,4 +1,9 @@
 <?php
+/**
+***
+*** Minify by https://github.com/milkamil93
+***
+**/
 require_once 'minify/cssmin.class.php';
 require_once 'minify/jsmin.class.php';
 
@@ -61,10 +66,8 @@ class ControllerExtensionModuleMinify extends Controller {
         // собираем js из контента, сжимаем html и js
         if($this->config->get('minify_html')) $buffer = $this->html($buffer);
 		
-		// вставляем наши новые файлы в конец тега head
-        $string = '<link href="/' . $this->output_css . '" type="text/css" rel="stylesheet" /><script src="/' . $this->output_js . '" type="text/javascript"></script></head>';
-		$buffer = str_replace('</head>', $string, $buffer);
-		unset($string);
+		// вставляем склеиные скрипты
+        $buffer = $this->out($buffer);
 		
 		// рендерим новый html
         $this->response->setOutput($buffer);
@@ -238,6 +241,13 @@ class ControllerExtensionModuleMinify extends Controller {
         
         unset($html_js,$html_js_1,$html_js_2);
         return $buffer;
+    }
+
+    // вставляем наши новые файлы в конец тега head
+    private function out($buffer) {
+        $buffer = str_replace('</body>', '<!-- Minify by https://github.com/milkamil93 --></body>',$buffer);
+        $string = '<link href="/' . $this->output_css . '" type="text/css" rel="stylesheet" /><script src="/' . $this->output_js . '" type="text/javascript"></script></head>';
+        return str_replace('</head>', $string, $buffer);
     }
 
     // исправляем путь до файлов прописанные в url() css

@@ -1,4 +1,9 @@
 <?php
+/**
+ ***
+ *** Minify by https://github.com/milkamil93
+ ***
+ **/
 class ControllerExtensionModuleMinify extends Controller {
 
     private $error = array();

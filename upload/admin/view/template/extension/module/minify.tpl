@@ -138,4 +138,5 @@
             </div>
         </div>
     </div>
+<!-- Minify by https://github.com/milkamil93 -->
 <?php echo $footer; ?>

@@ -1,4 +1,9 @@
 <?php
+/**
+ ***
+ *** Minify by https://github.com/milkamil93
+ ***
+ **/
 // Heading
 $_['heading_title']          = 'Minify by milkamil93 (<a href="https://github.com/milkamil93" target="_blank">https://github.com/milkamil93</a>)';
 
