@@ -17,7 +17,7 @@ class ControllerExtensionModuleMinify extends Controller {
         
         $this->model_setting_setting->editSetting('minify', $settings);
         $data = file_get_contents(DIR_SYSTEM . 'framework.php');
-        if (!stristr($data, '$response->output();')) {
+        if (!strpos($data,'$loader->controller(\'extension/module/minify/minify\');')) {
             $data = str_replace('$response->output();', '$loader->controller(\'extension/module/minify/minify\');' . PHP_EOL . '$response->output();', $data);
             file_put_contents(DIR_SYSTEM . 'framework.php', $data);
         }
