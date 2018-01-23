@@ -5,20 +5,22 @@ class ControllerExtensionModuleMinify extends Controller {
 
     public function install() {
         $this->load->model('setting/setting');
-        $settings = $this->model_setting_setting->getSetting('minify');
         
-        $settings['minify_status'] = 1;
-        $settings['minify_gzip'] = 0;
-        $settings['minify_css'] = 1;
-        $settings['minify_js'] = 1;
-        $settings['minify_html'] = 1;
-        $settings['minify_time'] = '43200';
+        $settings = [
+            'minify_status' => 1,
+            'minify_gzip' => 0,
+            'minify_css' => 1,
+            'minify_js' => 1,
+            'minify_html' => 1,
+            'minify_time' => '43200'
+        ];
         
         $this->model_setting_setting->editSetting('minify', $settings);
-        
         $data = file_get_contents(DIR_SYSTEM . 'framework.php');
-        $data = str_replace('$response->output();', '$loader->controller(\'extension/module/minify/minify\');' . PHP_EOL . '$response->output();', $data);
-        file_put_contents(DIR_SYSTEM . 'framework.php', $data);
+        if (!stristr($data, '$response->output();')) {
+            $data = str_replace('$response->output();', '$loader->controller(\'extension/module/minify/minify\');' . PHP_EOL . '$response->output();', $data);
+            file_put_contents(DIR_SYSTEM . 'framework.php', $data);
+        }
     }
 
     public function uninstall() {
