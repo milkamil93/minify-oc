@@ -147,7 +147,8 @@ class ControllerExtensionModuleMinify extends Controller {
     // собираем css
     private function css($buffer) {
         preg_match_all('/<link[^>]*href="([^"]*).css"[^>]*>/is', $buffer, $styles);
-        foreach ($styles['0'] as &$style) {
+        $styles = $this->external_url($this->unique($styles['0']));
+        foreach ($styles as &$style) {
             preg_match('/^<link.*?href=(["\'])(.*?)\1.*$/', $style, $style_name);
             $file_name = $style_name['2'];
             if (!empty($file_name)) {
@@ -164,7 +165,8 @@ class ControllerExtensionModuleMinify extends Controller {
         }
 
         // удаляем старые стили
-        $buffer = preg_replace('/<link[^>]*href="([^"]*).css"[^>]*>\n/is', '', $buffer);
+        $buffer = str_replace($this->css_array, 'remove', $buffer);
+        $buffer = preg_replace('/<link[^>]*href="remove"[^>]*>\n/is', '', $buffer);
         $_css_file = md5(serialize($this->css_array)) . '.css' . $this->jgz;
         $this->output_css = $this->out_folder . '/' . $_css_file;
         if ($this->file_check($this->output_css)) {
@@ -178,7 +180,8 @@ class ControllerExtensionModuleMinify extends Controller {
     // собираем js
     private function js($buffer) {
         preg_match_all('/<script\b[^>]*><\/script>/is', $buffer, $scripts);
-        foreach ($scripts['0'] as &$script) {
+        $scripts = $this->external_url($this->unique($scripts['0']));
+        foreach ($scripts as &$script) {
             preg_match('/src=(["\'])(.*?)\1/', $script, $script_name);
             $file_name = $script_name['2'];
             if (!empty($file_name)) {
@@ -192,12 +195,12 @@ class ControllerExtensionModuleMinify extends Controller {
                     }
                 }
             }
-
             unset($script,$script_name,$file_name);
         }
-
+        
         // удаляем старые скрипты
-        $buffer = preg_replace('/<script\b[^>]*><\/script>\n/is', '', $buffer);
+        $buffer = str_replace($this->js_array, 'remove', $buffer);
+        $buffer = preg_replace('/<script(.*?)remove(.*?)><\/script>\n/is', '', $buffer);
         $_js_file = md5(serialize($this->js_array)) . '.js' . $this->jgz;
         $this->output_js = $this->out_folder . '/' . $_js_file;
         if ($this->file_check($this->output_js)) {
@@ -213,6 +216,7 @@ class ControllerExtensionModuleMinify extends Controller {
         preg_match_all('/<script>(.*?)<\/script>/is', $buffer, $html_js_1);
         preg_match_all('/<script type="text\/javascript">(.*?)<\/script>/is', $buffer, $html_js_2);
         $html_js = array_merge($html_js_1['1'], $html_js_2['1']);
+        $html_js = $this->unique($html_js);
         foreach ($html_js as $i => &$js){
             if(!empty($js)) {
                 $search = ["<script>". $js ."</script>","<script type=\"text/javascript\">". $js ."</script>"];
@@ -244,5 +248,24 @@ class ControllerExtensionModuleMinify extends Controller {
         $outFile = str_replace('//', '/', $outFile);
         unset($file);
         return $outFile;
+    }
+
+    // проверка массива на пустоту и повторения
+    private function unique($array) {
+        $array = array_diff($array, array(''));
+        $array = array_unique($array);
+        return array_map('trim', $array);
+    }
+    
+    // поиск и удаление внешних ссылок в массиве
+    private function external_url($array) {
+        $out = [];
+        foreach ($array as &$item) {
+            if (!(strpos($item,'//') && !strpos($item,$_SERVER['HTTP_HOST'])))
+                $out[] = $item;
+            unset($item);
+        }
+        unset($array);
+        return $out;
     }
 }

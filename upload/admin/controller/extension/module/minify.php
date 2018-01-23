@@ -5,7 +5,6 @@ class ControllerExtensionModuleMinify extends Controller {
 
     public function install() {
         $this->load->model('setting/setting');
-        
         $settings = [
             'minify_status' => 1,
             'minify_gzip' => 0,
@@ -14,8 +13,8 @@ class ControllerExtensionModuleMinify extends Controller {
             'minify_html' => 1,
             'minify_time' => '43200'
         ];
-        
         $this->model_setting_setting->editSetting('minify', $settings);
+        
         $data = file_get_contents(DIR_SYSTEM . 'framework.php');
         if (!strpos($data,'$loader->controller(\'extension/module/minify/minify\');')) {
             $data = str_replace('$response->output();', '$loader->controller(\'extension/module/minify/minify\');' . PHP_EOL . '$response->output();', $data);
@@ -24,11 +23,12 @@ class ControllerExtensionModuleMinify extends Controller {
     }
 
     public function uninstall() {
+        $this->load->model('setting/setting');
+        $this->model_setting_setting->deleteSetting('minify');
+        
         $data = file_get_contents(DIR_SYSTEM . 'framework.php');
         $data = str_replace('$loader->controller(\'extension/module/minify/minify\');' . PHP_EOL, '', $data);
         file_put_contents(DIR_SYSTEM . 'framework.php', $data);
-        $this->load->model('setting/setting');
-        $this->model_setting_setting->deleteSetting('minify');
     }
 
     public function index() {
@@ -151,9 +151,7 @@ class ControllerExtensionModuleMinify extends Controller {
             $patterns = array(
                 $minify_folder . '*.css',
                 $minify_folder . '*.js',
-                $minify_folder . '*.jgz',
-                DIR_CACHE . '*.css.*',
-                DIR_CACHE . '*.js.*'
+                $minify_folder . '*.jgz'
             );
 
             foreach ($patterns as $pattern) {
