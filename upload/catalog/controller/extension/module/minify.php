@@ -43,7 +43,7 @@ class ControllerExtensionModuleMinify extends Controller {
         $this->status['js'] = $this->config->get('minify_js');
         $this->status['html'] = $this->config->get('minify_html');
 
-        $this->jgz = $this->gzip ? '.jgz' : '';
+        $this->jgz = $this->status['gzip'] ? '.jgz' : '';
 
         $this->file_time_expired = $this->config->get('minify_time') ? $this->config->get('minify_time') : $this->file_time_expired;
 
@@ -84,13 +84,11 @@ class ControllerExtensionModuleMinify extends Controller {
 
         switch ($type) {
             case 'css':
-                $this->css_array = $this->css_array;
                 $css = $this->accept_array($this->css_array, 'css');
                 $minify = CSSMin::minify($css);
                 $output_file = $this->output_css;
                 break;
             case 'js':
-                $this->js_array = $this->js_array;
                 $js = $this->accept_array($this->js_array);
                 $minify = JSMin::minify($js);
                 $minify = $js;
@@ -100,7 +98,7 @@ class ControllerExtensionModuleMinify extends Controller {
 
         if (empty($minify) || empty($output_file)) return false;
 
-        $minify = $this->gzip ? gzencode($minify) : $minify;
+        $minify = $this->status['gzip'] ? gzencode($minify) : $minify;
         $result = file_put_contents($output_file, $minify);
 
         return $result;
