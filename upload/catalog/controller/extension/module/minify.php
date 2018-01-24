@@ -26,15 +26,22 @@ class ControllerExtensionModuleMinify extends Controller {
 
     // путь до дериктории
     private $out_folder;
-
-    // Gzip
-    private $gzip;
+    
+    private $status = [
+        'css' => 0,
+        'js' => 0,
+        'html' => 0,
+        'gzip' => 0
+    ];
 
     // основная функция запуска
     public function minify () {
 
         if(!$this->config->get('minify_status')) return false;
-        $this->gzip = $this->config->get('minify_gzip');
+        $this->status['gzip'] = $this->config->get('minify_gzip');
+        $this->status['css'] = $this->config->get('minify_css');
+        $this->status['js'] = $this->config->get('minify_js');
+        $this->status['html'] = $this->config->get('minify_html');
 
         $this->jgz = $this->gzip ? '.jgz' : '';
 
@@ -57,13 +64,13 @@ class ControllerExtensionModuleMinify extends Controller {
         $this->check_path($this->out_folder);
 
         // собираем стили
-        if($this->config->get('minify_css')) $buffer = $this->css($buffer);
+        if($this->status['css']) $buffer = $this->css($buffer);
 
         // собираем скрипты
-        if($this->config->get('minify_js')) $buffer = $this->js($buffer);
+        if($this->status['js']) $buffer = $this->js($buffer);
 
         // собираем js из контента, сжимаем html и js
-        if($this->config->get('minify_html')) $buffer = $this->html($buffer);
+        if($this->status['html']) $buffer = $this->html($buffer);
 
         // вставляем склеиные скрипты
         $buffer = $this->out($buffer);
@@ -236,8 +243,10 @@ class ControllerExtensionModuleMinify extends Controller {
     // вставляем наши новые файлы в конец тега head
     private function out($buffer) {
         $buffer = str_replace('</body>', '<!-- Minify by https://github.com/milkamil93 --></body>',$buffer);
-        $string = '<link href="/' . $this->output_css . '" type="text/css" rel="stylesheet" /><script src="/' . $this->output_js . '" type="text/javascript"></script></head>';
-        return str_replace('</head>', $string, $buffer);
+        $string = '';
+        $string .= $this->status['js'] ? '<script src="/' . $this->output_js . '" type="text/javascript"></script>' : '';
+        $string .= $this->status['css'] ? '<link href="/' . $this->output_css . '" type="text/css" rel="stylesheet" />' : '';
+        return str_replace('</head>', $string . '</head>', $buffer);
     }
 
     // исправляем путь до файлов прописанные в url() css
