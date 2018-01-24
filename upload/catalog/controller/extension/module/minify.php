@@ -49,7 +49,6 @@ class ControllerExtensionModuleMinify extends Controller {
 
         // указываем путь относительно темы
         $this->out_folder = 'catalog/view/theme/' . $theme . '/minify';
-        unset($theme);
 
         // получаем html
         $buffer = $this->response->getOutput();
@@ -82,7 +81,6 @@ class ControllerExtensionModuleMinify extends Controller {
                 $css = $this->accept_array($this->css_array, 'css');
                 $minify = CSSMin::minify($css);
                 $output_file = $this->output_css;
-                unset($css);
                 break;
             case 'js':
                 $this->js_array = $this->js_array;
@@ -90,7 +88,6 @@ class ControllerExtensionModuleMinify extends Controller {
                 $minify = JSMin::minify($js);
                 $minify = $js;
                 $output_file = $this->output_js;
-                unset($js);
                 break;
         }
 
@@ -99,7 +96,6 @@ class ControllerExtensionModuleMinify extends Controller {
         $minify = $this->gzip ? gzencode($minify) : $minify;
         $result = file_put_contents($output_file, $minify);
 
-        unset($type,$minify,$output_file);
         return $result;
     }
 
@@ -116,7 +112,6 @@ class ControllerExtensionModuleMinify extends Controller {
         if (!is_writable($path)) {
             trigger_error('Directory for compressed assets is not writable.');
         }
-        unset($path);
     }
 
     private function accept_array($array, $type = false) {
@@ -129,14 +124,12 @@ class ControllerExtensionModuleMinify extends Controller {
             $data .= $file;
             unset($item,$file);
         }
-        unset($array);
         return $data;
     }
 
     private function file_check($file) {
         if (is_file($file)) {
             $time = time() - filemtime($file);
-            unset($file);
             if ($time > $this->file_time_expired) {
                 return true;
             } else {
@@ -176,7 +169,6 @@ class ControllerExtensionModuleMinify extends Controller {
             $this->concatFiles('css');
         }
 
-        unset($styles,$_css_file);
         return $buffer;
     }
 
@@ -210,7 +202,6 @@ class ControllerExtensionModuleMinify extends Controller {
             $this->concatFiles('js');
         }
 
-        unset($scripts,$_js_file);
         return $buffer;
     }
 
@@ -239,7 +230,6 @@ class ControllerExtensionModuleMinify extends Controller {
             unset($js,$i);
         }
 
-        unset($html_js,$html_js_1,$html_js_2);
         return $buffer;
     }
 
@@ -256,7 +246,6 @@ class ControllerExtensionModuleMinify extends Controller {
         $outFile = dirname($file) . "/";
         $outFile = '/' . str_replace($this->out_folder, '/', $outFile) . '/';
         $outFile = str_replace('//', '/', $outFile);
-        unset($file);
         return $outFile;
     }
 
@@ -275,7 +264,6 @@ class ControllerExtensionModuleMinify extends Controller {
                 $out[] = $item;
             unset($item);
         }
-        unset($array);
         return $out;
     }
 }
