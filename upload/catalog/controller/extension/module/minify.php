@@ -26,7 +26,7 @@ class ControllerExtensionModuleMinify extends Controller {
 
     // путь до дериктории
     private $out_folder;
-    
+
     private $status = [
         'css' => 0,
         'js' => 0,
@@ -91,7 +91,6 @@ class ControllerExtensionModuleMinify extends Controller {
             case 'js':
                 $js = $this->accept_array($this->js_array);
                 $minify = JSMin::minify($js);
-                $minify = $js;
                 $output_file = $this->output_js;
                 break;
         }
@@ -215,11 +214,11 @@ class ControllerExtensionModuleMinify extends Controller {
         preg_match_all('/<script>(.*?)<\/script>/is', $buffer, $html_js_1);
         preg_match_all('/<script type="text\/javascript">(.*?)<\/script>/is', $buffer, $html_js_2);
         $html_js = array_merge($html_js_1['1'], $html_js_2['1']);
-        $html_js = $this->unique($html_js);
-        foreach ($html_js as $i => &$js){
+
+        foreach ($html_js as $i => &$js) {
             if(!empty($js)) {
-                $search = ["<script>". $js ."</script>","<script type=\"text/javascript\">". $js ."</script>"];
-                $buffer = str_replace($search, '<script data-s="' . $i . '" type="text/javascript">' . $js . '</script>', $buffer);
+                $search = ['<script>'.$js.'</script>','<script type="text/javascript">'.$js.'</script>'];
+                $buffer = str_replace($search,'<script data-s="' . $i . '" type="text/javascript">' . $js . '</script>', $buffer);
                 unset($search);
             }
             unset($js,$i);
