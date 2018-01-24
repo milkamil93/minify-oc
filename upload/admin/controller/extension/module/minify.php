@@ -4,272 +4,181 @@
  *** Minify by https://github.com/milkamil93
  ***
  **/
-require_once 'minify/cssmin.class.php';
-require_once 'minify/jsmin.class.php';
-
 class ControllerExtensionModuleMinify extends Controller {
 
-    // время хранения файла в секундах
-    private $file_time_expired = '3600';
+    private $error = array();
+ 
+    public function install() {
+        $this->load->model('setting/setting');
+        $settings = [
+            'minify_status' => 1,
+            'minify_gzip' => 0,
+            'minify_css' => 1,
+            'minify_js' => 1,
+            'minify_html' => 1,
+            'minify_time' => '43200'
+        ];
+        $this->model_setting_setting->editSetting('minify', $settings);
+        
+        $data = file_get_contents(DIR_SYSTEM . 'framework.php');
+        if (!strpos($data,'$loader->controller(\'extension/module/minify/minify\');')) {
+            $data = str_replace('$response->output();', '$loader->controller(\'extension/module/minify/minify\');' . PHP_EOL . '$response->output();', $data);
+            file_put_contents(DIR_SYSTEM . 'framework.php', $data);
+        }
+    }
 
-    // массив списка js файлов со страницы
-    private $js_array = [];
+    public function uninstall() {
+        $this->load->model('setting/setting');
+        $this->model_setting_setting->deleteSetting('minify');
+        
+        $data = file_get_contents(DIR_SYSTEM . 'framework.php');
+        $data = str_replace('$loader->controller(\'extension/module/minify/minify\');' . PHP_EOL, '', $data);
+        file_put_contents(DIR_SYSTEM . 'framework.php', $data);
+    }
 
-    // массив списка css файлов со страницы
-    private $css_array = [];
+    public function index() {
+        $data = $this->load->language('extension/module/minify');
+        $this->document->setTitle($this->language->get('heading_title'));
+        $data['text_edit'] = $this->language->get('text_edit');
+        $data['entry_status'] = $this->language->get('entry_status');
+        $data['cache_del'] = $this->language->get('cache_del');
+        $data['text_gzip'] = $this->language->get('text_gzip');
+        $data['text_css'] = $this->language->get('text_css');
+        $data['text_js'] = $this->language->get('text_js');
+        $data['text_time'] = $this->language->get('text_time');
 
-    // путь до js файла
-    private $output_js;
+        $this->load->model('setting/setting');
+        $config = $this->model_setting_setting->getSetting('minify');
+        
+        if (($this->request->server['REQUEST_METHOD'] === 'POST') && $this->validate()) {
+            $this->model_setting_setting->editSetting('minify', $this->request->post);
+            $this->session->data['success'] = $this->language->get('text_success');
+            //$this->response->redirect($this->url->link('extension/extension', 'token=' . $this->session->data['token'] . '&type=module', true));
+            
+        }
 
-    // путь до css файла
-    private $output_css;
+        $data['breadcrumbs'] = array();
+        $data['breadcrumbs'][] = array(
+            'text' => $this->language->get('text_home'),
+            'href' => $this->url->link('common/dashboard', 'token=' . $this->session->data['token'], true)
+        );
+        $data['breadcrumbs'][] = array(
+            'text' => $this->language->get('heading_title'),
+            'href' => $this->url->link('extension/module/minify', 'token=' . $this->session->data['token'], true)
+        );
 
-    // путь до дериктории
-    private $out_folder;
 
-    private $status = [
-        'css' => 0,
-        'js' => 0,
-        'html' => 0,
-        'gzip' => 0
-    ];
-
-    // основная функция запуска
-    public function minify () {
-
-        if(!$this->config->get('minify_status')) return false;
-        $this->status['gzip'] = $this->config->get('minify_gzip');
-        $this->status['css'] = $this->config->get('minify_css');
-        $this->status['js'] = $this->config->get('minify_js');
-        $this->status['html'] = $this->config->get('minify_html');
-
-        $this->jgz = $this->status['gzip'] ? '.jgz' : '';
-
-        $this->file_time_expired = $this->config->get('minify_time') ? $this->config->get('minify_time') : $this->file_time_expired;
-
-        // получаем папку темы
-        if ($this->config->get('config_theme') == 'theme_default') {
-            $theme = $this->config->get('theme_default_directory');
+        if (isset($this->session->data['success'])) {
+            $data['success'] = $this->session->data['success'];
+            unset($this->session->data['success']);
         } else {
-            $theme = $this->config->get('config_theme');
+            $data['success'] = '';
         }
 
-        // указываем путь относительно темы
-        $this->out_folder = 'catalog/view/theme/' . $theme . '/minify';
+        if (isset($this->request->post['minify_status'])) {
+            $data['minify_status'] = $this->request->post['minify_status'];
+        } elseif (!empty($config)) {
+            $data['minify_status'] = $config['minify_status'];
+        } else {
+            $data['minify_status'] = '';
+        }
 
-        // получаем html
-        $buffer = $this->response->getOutput();
+        if (isset($this->request->post['minify_gzip'])) {
+            $data['minify_gzip'] = $this->request->post['minify_gzip'];
+        } elseif (!empty($config)) {
+            $data['minify_gzip'] = $config['minify_gzip'];
+        } else {
+            $data['minify_gzip'] = '';
+        }
 
-        // проверяем существование директории
-        $this->check_path($this->out_folder);
+        if (isset($this->request->post['minify_css'])) {
+            $data['minify_css'] = $this->request->post['minify_css'];
+        } elseif (!empty($config)) {
+            $data['minify_css'] = $config['minify_css'];
+        } else {
+            $data['minify_css'] = '';
+        }
 
-        // собираем стили
-        if($this->status['css']) $buffer = $this->css($buffer);
+        if (isset($this->request->post['minify_js'])) {
+            $data['minify_js'] = $this->request->post['minify_js'];
+        } elseif (!empty($config)) {
+            $data['minify_js'] = $config['minify_js'];
+        } else {
+            $data['minify_js'] = '';
+        }
 
-        // собираем скрипты
-        if($this->status['js']) $buffer = $this->js($buffer);
+        if (isset($this->request->post['minify_html'])) {
+            $data['minify_html'] = $this->request->post['minify_html'];
+        } elseif (!empty($config)) {
+            $data['minify_html'] = $config['minify_html'];
+        } else {
+            $data['minify_html'] = '';
+        }
 
-        // собираем js из контента, сжимаем html и js
-        if($this->status['html']) $buffer = $this->html($buffer);
+        if (isset($this->request->post['minify_time'])) {
+            $data['minify_time'] = $this->request->post['minify_time'];
+        } elseif (!empty($config)) {
+            $data['minify_time'] = $config['minify_time'];
+        } else {
+            $data['minify_time'] = '';
+        }
 
-        // вставляем склеиные скрипты
-        $buffer = $this->out($buffer);
+        $data['token'] = $this->session->data['token'];
+        
+        $data['action'] = $this->url->link('extension/module/minify', 'token=' . $this->session->data['token'], true);
+        $data['cancel'] = $this->url->link('extension/extension', 'token=' . $this->session->data['token'] . '&type=module', true);
+        $data['clear'] = $this->url->link('extension/module/minify/clear', 'token=' . $this->session->data['token'], true);
+        
+        $data['header'] = $this->load->controller('common/header');
+        $data['column_left'] = $this->load->controller('common/column_left');
+        $data['footer'] = $this->load->controller('common/footer');
 
-        // рендерим новый html
-        $this->response->setOutput($buffer);
+        $this->response->setOutput($this->load->view('extension/module/minify', $data));
     }
 
-    // сжимаем собранные js или css в переменную
-    private function concatFiles($type) {
+    public function clear() {
+        $this->load->language('extension/module/minify');
 
-        switch ($type) {
-            case 'css':
-                $css = $this->accept_array($this->css_array, 'css');
-                $minify = CSSMin::minify($css);
-                $output_file = $this->output_css;
-                break;
-            case 'js':
-                $js = $this->accept_array($this->js_array);
-                $minify = JSMin::minify($js);
-                $output_file = $this->output_js;
-                break;
-        }
+        $json = array();
 
-        if (empty($minify) || empty($output_file)) return false;
+        if (!$this->validate()) {
+            $json['error'] = $this->language->get('error_permission');
+        } else {
 
-        $minify = $this->status['gzip'] ? gzencode($minify) : $minify;
-        $result = file_put_contents($output_file, $minify);
-
-        return $result;
-    }
-
-    // проверяем существования пути
-    private function check_path($path) {
-        if (!file_exists($path)) {
-            mkdir($path);
-        }
-
-        if (!is_readable($path)) {
-            trigger_error('Directory for compressed assets is not readable.');
-        }
-
-        if (!is_writable($path)) {
-            trigger_error('Directory for compressed assets is not writable.');
-        }
-    }
-
-    private function accept_array($array, $type = false) {
-        $data = '';
-        foreach ($array as &$item) {
-            $file = file_get_contents($item) . PHP_EOL;
-            if ($type === 'css') {
-                $file = preg_replace('#url\((?!\s*[\'"]?(data\:image|/|http([s]*)\:\/\/))\s*([\'"])?#i', "url($3{$this->getPath($item)}", $file);
-            }
-            $data .= $file;
-            unset($item,$file);
-        }
-        return $data;
-    }
-
-    private function file_check($file) {
-        if (is_file($file)) {
-            $time = time() - filemtime($file);
-            if ($time > $this->file_time_expired) {
-                return true;
+            if ($this->config->get('config_theme') == 'theme_default') {
+                $theme = $this->config->get('theme_default_directory');
             } else {
-                return false;
+                $theme = $this->config->get('config_theme');
             }
-        } else {
-            return true;
-        }
-    }
 
-    // собираем css
-    private function css($buffer) {
-        preg_match_all('/<link[^>]*href="([^"]*).css"[^>]*>/is', $buffer, $styles);
-        $styles = $this->external_url($this->unique($styles['0']));
-        foreach ($styles as &$style) {
-            preg_match('/^<link.*?href=(["\'])(.*?)\1.*$/', $style, $style_name);
-            $file_name = $style_name['2'];
-            if (!empty($file_name)) {
-                if (is_readable($file_name)) {
-                    if(stristr($style_name['2'],'//')) {
-                        if(stristr($style_name['2'],$_SERVER['SERVER_NAME']))
-                            $this->css_array[] = $file_name;
-                    } else {
-                        $this->css_array[] = $file_name;
-                    }
+            $minify_folder = $_SERVER['DOCUMENT_ROOT'] . '/catalog/view/theme/' . $theme . '/minify/';
+
+            $patterns = array(
+                $minify_folder . '*.css',
+                $minify_folder . '*.js',
+                $minify_folder . '*.jgz'
+            );
+
+            foreach ($patterns as $pattern) {
+                foreach (glob($pattern) as $file) {
+                    unlink($file);
                 }
             }
-            unset($style,$style_name,$file_name);
+
+            $json['success'] = true;
+
         }
 
-        // удаляем старые стили
-        $buffer = str_replace($this->css_array, 'remove', $buffer);
-        $buffer = preg_replace('/<link(.*?)href="remove"(.*?)>/', '', $buffer);
-        $_css_file = md5(serialize($this->css_array)) . '.css' . $this->jgz;
-        $this->output_css = $this->out_folder . '/' . $_css_file;
-        if ($this->file_check($this->output_css)) {
-            $this->concatFiles('css');
+        $this->session->data['success'] = $this->language->get('text_cache');
+        $this->response->redirect($this->url->link('extension/module/minify', 'token=' . $this->session->data['token'], true));
+    }
+
+    protected function validate() {
+        if (!$this->user->hasPermission('access', 'extension/module/minify')) {
+            $this->error['warning'] = $this->language->get('error_permission');
         }
 
-        return $buffer;
+        return !$this->error;
     }
 
-    // собираем js
-    private function js($buffer) {
-        preg_match_all('/<script\b[^>]*><\/script>/is', $buffer, $scripts);
-        $scripts = $this->external_url($this->unique($scripts['0']));
-        foreach ($scripts as &$script) {
-            preg_match('/src=(["\'])(.*?)\1/', $script, $script_name);
-            $file_name = $script_name['2'];
-            if (!empty($file_name)) {
-                if (is_readable($file_name)) {
-                    if(stristr($script_name['2'],'//')) {
-                        if(stristr($script_name['2'],$_SERVER['SERVER_NAME'])) {
-                            $this->js_array[] = $file_name;
-                        }
-                    } else {
-                        $this->js_array[] = $file_name;
-                    }
-                }
-            }
-            unset($script,$script_name,$file_name);
-        }
-
-        // удаляем старые скрипты
-        $buffer = str_replace($this->js_array, 'remove', $buffer);
-        $buffer = preg_replace('/<script(.*?)remove(.*?)><\/script>/', '', $buffer);
-        $_js_file = md5(serialize($this->js_array)) . '.js' . $this->jgz;
-        $this->output_js = $this->out_folder . '/' . $_js_file;
-        if ($this->file_check($this->output_js)) {
-            $this->concatFiles('js');
-        }
-
-        return $buffer;
-    }
-
-    // собираем js из контента, сжимаем html и js
-    private function html($buffer) {
-        preg_match_all('/<script>(.*?)<\/script>/is', $buffer, $html_js_1);
-        preg_match_all('/<script type="text\/javascript">(.*?)<\/script>/is', $buffer, $html_js_2);
-        $html_js = array_merge($html_js_1['1'], $html_js_2['1']);
-
-        foreach ($html_js as $i => &$js) {
-            if(!empty($js)) {
-                $search = ['<script>'.$js.'</script>','<script type="text/javascript">'.$js.'</script>'];
-                $buffer = str_replace($search,'<script data-s="' . $i . '" type="text/javascript">' . $js . '</script>', $buffer);
-                unset($search);
-            }
-            unset($js,$i);
-        }
-
-        // сжимаем html
-        $buffer= preg_replace('|\s+|', ' ', $buffer);
-
-        // возвращаем js на место
-        foreach ($html_js as $i => &$js) {
-            $js = JSMin::minify($js);
-            $buffer = preg_replace('/<script data-s="' . $i . '" type="text\/javascript">(.*?)<\/script>/is', '<script type="text/javascript">' . $js . '</script>', $buffer);
-            unset($js,$i);
-        }
-
-        return $buffer;
-    }
-
-    // вставляем наши новые файлы в конец тега head
-    private function out($buffer) {
-        $buffer = str_replace('</body>', '<!-- Minify by https://github.com/milkamil93 --></body>',$buffer);
-        $string = '';
-        $string .= $this->status['js'] ? '<script src="/' . $this->output_js . '" type="text/javascript"></script>' : '';
-        $string .= $this->status['css'] ? '<link href="/' . $this->output_css . '" type="text/css" rel="stylesheet" />' : '';
-        return str_replace('</head>', $string . '</head>', $buffer);
-    }
-
-    // исправляем путь до файлов прописанные в url() css
-    private function getPath($file){
-        if(empty($file)) return '';
-        $outFile = dirname($file) . "/";
-        $outFile = '/' . str_replace($this->out_folder, '/', $outFile) . '/';
-        $outFile = str_replace('//', '/', $outFile);
-        return $outFile;
-    }
-
-    // проверка массива на пустоту и повторения
-    private function unique($array) {
-        $array = array_diff($array, array(''));
-        $array = array_unique($array);
-        return array_map('trim', $array);
-    }
-
-    // поиск и удаление внешних ссылок в массиве
-    private function external_url($array) {
-        $out = [];
-        foreach ($array as &$item) {
-            if (!(strpos($item,'//') && !strpos($item,$_SERVER['HTTP_HOST'])))
-                $out[] = $item;
-            unset($item);
-        }
-        return $out;
-    }
 }

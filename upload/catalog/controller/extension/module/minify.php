@@ -26,7 +26,7 @@ class ControllerExtensionModuleMinify extends Controller {
 
     // путь до дериктории
     private $out_folder;
-
+    
     private $status = [
         'css' => 0,
         'js' => 0,
@@ -214,7 +214,7 @@ class ControllerExtensionModuleMinify extends Controller {
         preg_match_all('/<script>(.*?)<\/script>/is', $buffer, $html_js_1);
         preg_match_all('/<script type="text\/javascript">(.*?)<\/script>/is', $buffer, $html_js_2);
         $html_js = array_merge($html_js_1['1'], $html_js_2['1']);
-
+        
         foreach ($html_js as $i => &$js) {
             if(!empty($js)) {
                 $search = ['<script>'.$js.'</script>','<script type="text/javascript">'.$js.'</script>'];
