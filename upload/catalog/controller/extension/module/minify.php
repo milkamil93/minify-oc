@@ -26,12 +26,13 @@ class ControllerExtensionModuleMinify extends Controller {
 
     // путь до дериктории
     private $out_folder;
-    
+
     private $status = [
         'css' => 0,
         'js' => 0,
         'html' => 0,
-        'gzip' => 0
+        'gzip' => 0,
+        'async' => 0
     ];
 
     // основная функция запуска
@@ -42,6 +43,7 @@ class ControllerExtensionModuleMinify extends Controller {
         $this->status['css'] = $this->config->get('minify_css');
         $this->status['js'] = $this->config->get('minify_js');
         $this->status['html'] = $this->config->get('minify_html');
+        $this->status['async'] = $this->config->get('minify_async');
 
         $this->jgz = $this->status['gzip'] ? '.jgz' : '';
 
@@ -90,6 +92,9 @@ class ControllerExtensionModuleMinify extends Controller {
                 break;
             case 'js':
                 $js = $this->accept_array($this->js_array);
+                if ($this->status['async']) {
+                    $js .= 'for(f in minify_out){minify_out[f]();};';
+                }
                 $minify = JSMin::minify($js);
                 $output_file = $this->output_js;
                 break;
@@ -214,7 +219,7 @@ class ControllerExtensionModuleMinify extends Controller {
         preg_match_all('/<script>(.*?)<\/script>/is', $buffer, $html_js_1);
         preg_match_all('/<script type="text\/javascript">(.*?)<\/script>/is', $buffer, $html_js_2);
         $html_js = array_merge($html_js_1['1'], $html_js_2['1']);
-        
+
         foreach ($html_js as $i => &$js) {
             if(!empty($js)) {
                 $search = ['<script>'.$js.'</script>','<script type="text/javascript">'.$js.'</script>'];
@@ -230,7 +235,11 @@ class ControllerExtensionModuleMinify extends Controller {
         // возвращаем js на место
         foreach ($html_js as $i => &$js) {
             $js = JSMin::minify($js);
-            $buffer = preg_replace('/<script data-s="' . $i . '" type="text\/javascript">(.*?)<\/script>/is', '<script type="text/javascript">' . $js . '</script>', $buffer);
+            if (!$this->status['async']) {
+                //$buffer = preg_replace('/<script data-s="' . $i . '" type="text\/javascript">(.*?)<\/script>/is', '<script type="text/javascript">' . $js . '</script>', $buffer);
+            } else {
+                $buffer = preg_replace('/<script data-s="' . $i . '" type="text\/javascript">(.*?)<\/script>/is', '<script type="text/javascript">minify_out.script_' . $i . '=function(){' . $js . '};</script>', $buffer);
+            }
             unset($js,$i);
         }
 
@@ -239,11 +248,18 @@ class ControllerExtensionModuleMinify extends Controller {
 
     // вставляем наши новые файлы в конец тега head
     private function out($buffer) {
-        $buffer = str_replace('</body>', '<!-- Minify by https://github.com/milkamil93 --></body>',$buffer);
         $string = '';
-        $string .= $this->status['js'] ? '<script src="/' . $this->output_js . '" type="text/javascript"></script>' : '';
+        $string .= $this->status['js'] && !$this->status['async'] ? '<script src="/' . $this->output_js . '" type="text/javascript"></script>' : '';
         $string .= $this->status['css'] ? '<link href="/' . $this->output_css . '" type="text/css" rel="stylesheet" />' : '';
-        return str_replace('</head>', $string . '</head>', $buffer);
+        $buffer = str_replace('</head>', $string . '</head>', $buffer);
+
+        if ($this->status['async']) {
+            $buffer = str_replace('</head>','<script type="text/javascript">var minify_out={};</script></head>', $buffer);
+            $buffer = str_replace('</body>','<script src="/' . $this->output_js . '" type="text/javascript" async></script></body>', $buffer);
+        }
+
+        $buffer = str_replace('</body>', '<!-- Minify by https://github.com/milkamil93 --></body>',$buffer);
+        return $buffer;
     }
 
     // исправляем путь до файлов прописанные в url() css

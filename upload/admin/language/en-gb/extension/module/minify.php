@@ -20,6 +20,8 @@ $_['text_css']           = 'CSS';
 $_['text_js']           = 'JS';
 $_['text_html']           = 'HTML in one line';
 $_['text_time']           = 'The time (in seconds) of the cache life';
+$_['text_time_amount']           = 'sec.';
+$_['text_async']           = 'Asynchronous loading of js (only if enabled "'.$_['text_html'].'")';
 
 // Error
 $_['error_permission']        = 'You do not have permission to edit this module!';

@@ -7,7 +7,7 @@
 class ControllerExtensionModuleMinify extends Controller {
 
     private $error = array();
- 
+
     public function install() {
         $this->load->model('setting/setting');
         $settings = [
@@ -16,10 +16,11 @@ class ControllerExtensionModuleMinify extends Controller {
             'minify_css' => 1,
             'minify_js' => 1,
             'minify_html' => 1,
-            'minify_time' => '43200'
+            'minify_time' => '43200',
+            'minify_async' => 0
         ];
         $this->model_setting_setting->editSetting('minify', $settings);
-        
+
         $data = file_get_contents(DIR_SYSTEM . 'framework.php');
         if (!strpos($data,'$loader->controller(\'extension/module/minify/minify\');')) {
             $data = str_replace('$response->output();', '$loader->controller(\'extension/module/minify/minify\');' . PHP_EOL . '$response->output();', $data);
@@ -30,7 +31,7 @@ class ControllerExtensionModuleMinify extends Controller {
     public function uninstall() {
         $this->load->model('setting/setting');
         $this->model_setting_setting->deleteSetting('minify');
-        
+
         $data = file_get_contents(DIR_SYSTEM . 'framework.php');
         $data = str_replace('$loader->controller(\'extension/module/minify/minify\');' . PHP_EOL, '', $data);
         file_put_contents(DIR_SYSTEM . 'framework.php', $data);
@@ -46,15 +47,16 @@ class ControllerExtensionModuleMinify extends Controller {
         $data['text_css'] = $this->language->get('text_css');
         $data['text_js'] = $this->language->get('text_js');
         $data['text_time'] = $this->language->get('text_time');
+        $data['text_async'] = $this->language->get('text_async');
 
         $this->load->model('setting/setting');
         $config = $this->model_setting_setting->getSetting('minify');
-        
+
         if (($this->request->server['REQUEST_METHOD'] === 'POST') && $this->validate()) {
             $this->model_setting_setting->editSetting('minify', $this->request->post);
             $this->session->data['success'] = $this->language->get('text_success');
             //$this->response->redirect($this->url->link('extension/extension', 'token=' . $this->session->data['token'] . '&type=module', true));
-            
+
         }
 
         $data['breadcrumbs'] = array();
@@ -123,12 +125,20 @@ class ControllerExtensionModuleMinify extends Controller {
             $data['minify_time'] = '';
         }
 
+        if (isset($this->request->post['minify_async'])) {
+            $data['minify_async'] = $this->request->post['minify_async'];
+        } elseif (!empty($config)) {
+            $data['minify_async'] = $config['minify_async'];
+        } else {
+            $data['minify_async'] = '';
+        }
+
         $data['token'] = $this->session->data['token'];
-        
+
         $data['action'] = $this->url->link('extension/module/minify', 'token=' . $this->session->data['token'], true);
         $data['cancel'] = $this->url->link('extension/extension', 'token=' . $this->session->data['token'] . '&type=module', true);
         $data['clear'] = $this->url->link('extension/module/minify/clear', 'token=' . $this->session->data['token'], true);
-        
+
         $data['header'] = $this->load->controller('common/header');
         $data['column_left'] = $this->load->controller('common/column_left');
         $data['footer'] = $this->load->controller('common/footer');

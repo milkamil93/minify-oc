@@ -50,7 +50,7 @@
                         <div class="form-group">
                             <label class="col-sm-2 control-label" for="input-time"><?php echo $text_time; ?></label>
                             <div class="col-sm-2">
-                                <input type="number" name="minify_time" value="<?php echo $minify_time; ?>" class="form-control" id="input-time">
+                                <input type="number" style="display:inline-block;width:80%;" name="minify_time" value="<?php echo $minify_time; ?>" class="form-control" id="input-time"> <?php echo $text_time_amount; ?>
                             </div>
                         </div>
                         <div class="form-group">
@@ -130,6 +130,26 @@
                                 <label class="radio-inline">
                                     <input type="radio" name="minify_html" value="0" checked="checked"> <?php echo $text_disabled; ?>
                                 </label>
+                                <?php } ?>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label class="col-sm-2 control-label"><?php echo $text_async; ?></label>
+                            <div class="col-sm-10">
+                                <?php if ($minify_async) { ?>
+                                    <label class="radio-inline">
+                                        <input type="radio" name="minify_async" value="1" checked="checked"> <?php echo $text_enabled; ?>
+                                    </label>
+                                    <label class="radio-inline">
+                                        <input type="radio" name="minify_async" value="0"> <?php echo $text_disabled; ?>
+                                    </label>
+                                <?php } else { ?>
+                                    <label class="radio-inline">
+                                        <input type="radio" name="minify_async" value="1"> <?php echo $text_enabled; ?>
+                                    </label>
+                                    <label class="radio-inline">
+                                        <input type="radio" name="minify_async" value="0" checked="checked"> <?php echo $text_disabled; ?>
+                                    </label>
                                 <?php } ?>
                             </div>
                         </div>
